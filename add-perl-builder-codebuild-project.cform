@@ -1,0 +1,129 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'A CloudFormation template to create a CodeBuild project that will compile
+  Perl modules and dependencies, and store the output in an S3 bukcet.'
+Parameters:
+  S3OutputBucketName:
+    Description: Name of the bucket to store the output
+    Type: String
+  PerlModuleName:
+    Description: Name of the Perl module to pre-compile
+    Type: String
+  DockerImage:
+    Description: Name of the container image to use as a base for the build
+    Type: String
+    Default: docker.io/ubuntu:20.04
+  BuildEnvType:
+    Description: One of ARM_CONTAINER, LINUX_CONTAINER, LINUX_GPU_CONTAINER, WINDOWS_CONTAINER or WINDOWS_SERVER_2019_CONTAINER
+    Type: String
+    Default: ARM_CONTAINER
+  BuildComputeType:
+    Description: One of BUILD_GENERAL1_SMALL, BUILD_GENERAL1_MEDIUM, BUILD_GENERAL1_LARGE
+    Type: String
+    Default: BUILD_GENERAL1_MEDIUM
+
+Resources:
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties: 
+      Artifacts: 
+        Location: !Ref OutpS3OutputBucketName
+        Type: S3
+
+      ConcurrentBuildLimit: 1
+      Description: !Sub CodeBuild project to pre-compile the Perl module '${PerlModuleName}'
+      EncryptionKey: String
+      Environment:
+        Type: !Ref BuildEnvType
+        ComputeType: !Ref BuildEnvType
+        EnvironmentVariables:
+        - Name: PERL_MODULE_NAME
+          Type: PLAINTEXT
+          Value: !Ref PerlModuleName
+        Image: !Ref DockerImage
+      FileSystemLocations: 
+        - ProjectFileSystemLocation
+      LogsConfig: 
+        LogsConfig
+      Name: String
+      QueuedTimeoutInMinutes: Integer
+      ResourceAccessRole: String
+
+      ServiceRole: !Ref RootInstanceProfile
+      Source:
+        Source
+      SourceVersion: String
+      Tags: 
+        - Tag
+      TimeoutInMinutes: Integer
+      Triggers: 
+        ProjectTriggers
+      Visibility: String
+      VpcConfig: 
+        VpcConfig
+
+# Create Service Role
+
+  RootRole: 
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "codebuild.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
+
+  RolePolicies: 
+    Type: "AWS::IAM::Policy"
+    Properties: 
+      PolicyName: "root"
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Resource:
+          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}
+          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}:*
+          Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+        - Effect: Allow
+          Resource:
+          - !Sub arn:aws:s3:::codepipeline-${AWS::Region}-*
+          Action:
+          - s3:PutObject
+          - s3:GetObject
+          - s3:GetObjectVersion
+          - s3:GetBucketAcl
+          - s3:GetBucketLocation
+        - Effect: Allow
+          Resource:
+          - !Sub arn:aws:s3:::${S3OutputBucketName}
+          - !Sub arn:aws:s3:::${S3OutputBucketName}/*
+          Action:
+          - s3:PutObject
+          - s3:GetBucketAcl
+          - s3:GetBucketLocation
+        - Effect: Allow
+          Action:
+          - codebuild:CreateReportGroup
+          - codebuild:CreateReport
+          - codebuild:UpdateReport
+          - codebuild:BatchPutTestCases
+          - codebuild:BatchPutCodeCoverages
+          Resource:
+          - !Sub arn:aws:codebuild${AWS::Region}:${AWS::AccountId}:report-group/${AWS::StackName}-*
+      Roles: 
+        - Ref: "RootRole"
+
+  RootInstanceProfile: 
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      Path: "/"
+      Roles: 
+        - Ref: "RootRole"
