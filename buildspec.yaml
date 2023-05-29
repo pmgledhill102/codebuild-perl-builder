@@ -1,0 +1,42 @@
+version: 0.2
+
+env:
+  variables:
+    "PERL_MODULE_NAME": "NEEDS_TO_BE_OVERIDDEN"
+
+phases:
+  install:
+    on-failure: ABORT
+    commands:
+      - "if [[ \"${PERL_MODULE_NAME}\" == \"NEEDS_TO_BE_OVERIDDEN\" ]]; then echo \"## ERROR - Must pass PERL_MODULE_NAME\"; exit 255; fi"
+      - apt-get update
+      - apt-get upgrade -y
+      - apt-get install -y gcc
+      - apt-get install -y cpanminus
+      - apt-get install -y build-essential
+      - apt-get install -y zlib1g-dev
+      - apt-get install -y openssl
+      - apt-get install -y libssl-dev
+      - cpanm install Carmel --notest
+  pre_build:
+    on-failure: ABORT
+    commands:
+      - echo "requires '${PERL_MODULE_NAME}';" >> cpanfile
+  build:
+    on-failure: ABORT
+    commands:
+      - carmel install
+      - carmel package
+  post_build:
+    on-failure: ABORT
+    commands:
+      - TMP_FNAME=$(ls $HOME/.carmel)
+      - mkdir /tmp/output
+      - mkdir /tmp/output/perl
+      - mkdir /tmp/output/perl/$TMP_FNAME
+      - tar -czvf /tmp/output/perl/$TMP_FNAME/${PERL_MODULE_NAME}.tar.gz $HOME/.carmel/
+artifacts:
+  base-directory: /tmp/output/
+  files:
+    - '**/*'
+  discard-paths: no
