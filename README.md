@@ -24,7 +24,15 @@ footprint.
 - The only way I could find to force an ENV var is set in the `env` section, and then confirm
   that it has been overidden by the CodeBuild config (let me know if there's a better way)
 
-### Example CodeBuild Project
+## Example CodeBuild Project - Cloud Formation
+
+See file `add-perl-builder-codebuild-project.cform`, which has just 3 mandatory parameters:
+
+- BuildProjectName:   CodeBuild project name
+- S3OutputBucketName: Bucket to store the output
+- PerlModuleName:     Perl module to pre-compile
+
+## Example CodeBuild Project - Manual
 
 - Create a Build project in CodeBuild
 - Project name: `Sample Perl Builder`
@@ -52,7 +60,7 @@ footprint.
   - Bucket name: `use-your-bucket-name`
   - Name: `perl-builder`
 
-### Build process
+## Build process
 
 - Pull and start base docker image, such as `docker.io/ubuntu.20.04` (Perl is pre-installed with Ubuntu)
 - Install Perl package `cpanminus` - required for Perl package management
@@ -66,7 +74,7 @@ footprint.
 
 - Store in S3
 
-### Deploy process
+## Deploy process
 
 - Install Perl package `cpanminus`
 - Install `Carmel` Perl module
@@ -74,3 +82,22 @@ footprint.
 - Create `cpanfile`
   - `echo "requires '${PERL_MODULE_NAME}';" >> cpanfile`
 - Install package using `Carmel install`
+
+### Example
+
+```sh
+# Download files from s3
+# aws s3 cp s3:\\bucket\path\file.tar.gz
+# untar ...
+
+apt-get update
+apt-get upgrade -y
+apt-get install gcc cpanminus -y
+
+cpanm install Carmel --notest
+
+echo "requires '${PERL_MODULE_NAME}';" >> cpanfile
+
+carmel install
+
+```

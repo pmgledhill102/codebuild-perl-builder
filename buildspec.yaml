@@ -3,6 +3,7 @@ version: 0.2
 env:
   variables:
     "PERL_MODULE_NAME": "NEEDS_TO_BE_OVERIDDEN"
+    "OUTPUT_FOLDER": "perl-output"
 
 phases:
   install:
@@ -32,11 +33,12 @@ phases:
     commands:
       - TMP_FNAME=$(ls $HOME/.carmel)
       - mkdir /tmp/output
-      - mkdir /tmp/output/perl
-      - mkdir /tmp/output/perl/$TMP_FNAME
-      - tar -czvf /tmp/output/perl/$TMP_FNAME/${PERL_MODULE_NAME}.tar.gz $HOME/.carmel/
+      - mkdir /tmp/output/${OUTPUT_FOLDER}
+      - mkdir /tmp/output/${OUTPUT_FOLDER}/$TMP_FNAME
+      - tar -czvf /tmp/output/${OUTPUT_FOLDER}/$TMP_FNAME/${PERL_MODULE_NAME}.tar.gz $HOME/.carmel/
 artifacts:
   base-directory: /tmp/output/
   files:
     - '**/*'
   discard-paths: no
+  name: '.'
