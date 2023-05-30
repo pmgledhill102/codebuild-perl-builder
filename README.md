@@ -2,22 +2,23 @@
 
 ## Intro
 
-Most Perl modules are written in Perl, but some use XS (written in C) so require
-a C compiler, and are compiled when they are installed.
+Most Perl modules are written entirely in Perl, but some also use XS (written in C). These
+require a C compiler, as they are compiled when the Perl modules are installed.
 
 The process of compiling the C libraries can take time, and depending on the complexity
-of the library can take a signficant amount of memory.
+of the library can take a signficant amount of memory. Memory your target server may not
+have.
 
-This repo contains a CodeBuild stage that can be used to pre-compile Perl modules
+This repo contains a CodeBuild project that can be used to pre-compile Perl modules
 against a particular version of Perl, and CPU architecture, so that they can
 installed during build in a much shorter period of time, and with a smaller memory
 footprint.
 
 ### Notes
 
-- I wanted to use an Ubuntu image to ensure I got the right version of Perl
-- I can't use an AWS managed CodeBuild image, as AWS don't provide an arm64 image of Ubuntu
-- You need a CodeBuild stage for each top-level Perl module you want to pre-build
+- An Ubuntu image is used to ensure compatability with my target server
+- AWS don't provide a managed arm64 image of Ubuntu, so a default image is used
+- A CodeBuild project is required for each Perl module to be pre-compiled
 - The tarbul is output to S3 in a folder containing the version number of Perl and the
   CPU architecture the module was built on; as these have to be identical on the target
   server, for example `5.30.0-aarch64-linux-gnu-thread-multi`.
