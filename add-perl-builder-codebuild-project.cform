@@ -1,67 +1,74 @@
 AWSTemplateFormatVersion: '2010-09-09'
+
 Description: 'A CloudFormation template to create a CodeBuild project that will compile
-  Perl modules and dependencies, and store the output in an S3 bukcet.'
+  Perl modules and dependencies, and store the output in an S3 bucket.'
+
 Parameters:
+  BuildProjectName:
+    Description: Name of the CodeBuild project
+    Type: String
   S3OutputBucketName:
     Description: Name of the bucket to store the output
     Type: String
   PerlModuleName:
     Description: Name of the Perl module to pre-compile
     Type: String
+  OutputFolder:
+    Description: Name of top level output folder
+    Type: String
+    Default: perl-mods
   DockerImage:
     Description: Name of the container image to use as a base for the build
     Type: String
     Default: docker.io/ubuntu:20.04
   BuildEnvType:
-    Description: One of ARM_CONTAINER, LINUX_CONTAINER, LINUX_GPU_CONTAINER, WINDOWS_CONTAINER or WINDOWS_SERVER_2019_CONTAINER
+    Description: The type of build environment to use for related builds.
     Type: String
     Default: ARM_CONTAINER
+    AllowedValues:
+      - ARM_CONTAINER
+      - LINUX_CONTAINER
+      - LINUX_GPU_CONTAINER
+      - WINDOWS_CONTAINER
+      - WINDOWS_SERVER_2019_CONTAINER
   BuildComputeType:
-    Description: One of BUILD_GENERAL1_SMALL, BUILD_GENERAL1_MEDIUM, BUILD_GENERAL1_LARGE
+    Description: The type of compute environment. This determines the number of CPU cores and memory the build environment uses
     Type: String
-    Default: BUILD_GENERAL1_MEDIUM
+    Default: BUILD_GENERAL1_SMALL
+    AllowedValues:
+      - BUILD_GENERAL1_SMALL
+      - BUILD_GENERAL1_MEDIUM
+      - BUILD_GENERAL1_LARGE
 
 Resources:
   CodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties: 
+      Name: !Ref BuildProjectName
       Artifacts: 
-        Location: !Ref OutpS3OutputBucketName
+        Location: !Ref S3OutputBucketName
         Type: S3
-
       ConcurrentBuildLimit: 1
       Description: !Sub CodeBuild project to pre-compile the Perl module '${PerlModuleName}'
-      EncryptionKey: String
       Environment:
         Type: !Ref BuildEnvType
-        ComputeType: !Ref BuildEnvType
+        ComputeType: !Ref BuildComputeType
         EnvironmentVariables:
         - Name: PERL_MODULE_NAME
           Type: PLAINTEXT
           Value: !Ref PerlModuleName
+        - Name: OUTPUT_FOLDER
+          Type: PLAINTEXT
+          Value: !Ref OutputFolder
         Image: !Ref DockerImage
-      FileSystemLocations: 
-        - ProjectFileSystemLocation
-      LogsConfig: 
-        LogsConfig
-      Name: String
-      QueuedTimeoutInMinutes: Integer
-      ResourceAccessRole: String
-
-      ServiceRole: !Ref RootInstanceProfile
+      ServiceRole: !Ref RootRole
       Source:
-        Source
-      SourceVersion: String
-      Tags: 
-        - Tag
-      TimeoutInMinutes: Integer
-      Triggers: 
-        ProjectTriggers
-      Visibility: String
-      VpcConfig: 
-        VpcConfig
-
-# Create Service Role
+        Location: https://github.com/pmgledhill102/codebuild-perl-builder.git
+        Type: GITHUB
+      Visibility: PRIVATE
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
 
   RootRole: 
     Type: "AWS::IAM::Role"
@@ -86,15 +93,15 @@ Resources:
         Statement:
         - Effect: Allow
           Resource:
-          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}
-          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}:*
+          - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}'
+          - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}:*'
           Action:
           - logs:CreateLogGroup
           - logs:CreateLogStream
           - logs:PutLogEvents
         - Effect: Allow
           Resource:
-          - !Sub arn:aws:s3:::codepipeline-${AWS::Region}-*
+          - !Sub 'arn:aws:s3:::codepipeline-${AWS::Region}-*'
           Action:
           - s3:PutObject
           - s3:GetObject
@@ -103,21 +110,21 @@ Resources:
           - s3:GetBucketLocation
         - Effect: Allow
           Resource:
-          - !Sub arn:aws:s3:::${S3OutputBucketName}
-          - !Sub arn:aws:s3:::${S3OutputBucketName}/*
+          - !Sub 'arn:aws:s3:::${S3OutputBucketName}'
+          - !Sub 'arn:aws:s3:::${S3OutputBucketName}/*'
           Action:
           - s3:PutObject
           - s3:GetBucketAcl
           - s3:GetBucketLocation
         - Effect: Allow
+          Resource:
+          - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/${AWS::StackName}-*'
           Action:
           - codebuild:CreateReportGroup
           - codebuild:CreateReport
           - codebuild:UpdateReport
           - codebuild:BatchPutTestCases
           - codebuild:BatchPutCodeCoverages
-          Resource:
-          - !Sub arn:aws:codebuild${AWS::Region}:${AWS::AccountId}:report-group/${AWS::StackName}-*
       Roles: 
         - Ref: "RootRole"
 
