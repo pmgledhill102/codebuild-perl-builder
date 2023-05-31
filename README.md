@@ -33,6 +33,18 @@ See file `add-perl-builder-codebuild-project.cform`, which has just 3 mandatory 
 - S3OutputBucketName: Bucket to store the output
 - PerlModuleName:     Perl module to pre-compile
 
+And if you want to spin up the stack using the CLI (just upload the template to S3 and update the `TEMPLATE_LOCATION` var, and update the `OUTPUT_BUCKET` to be the output location of the process)
+
+```bash
+STACK_NAME=maxmind
+BUILD_PROJECT=perler-${STACK_NAME}-arm-5-30
+PERL_MODULE=MaxMind::DB::Reader
+OUTPUT_BUCKET=perl-build-artefacts
+TEMPLATE_LOCATION=https://.....-eu-west-2.s3.eu-west-2.amazonaws.com/add-perl-builder-codebuild-project.cform
+
+aws cloudformation create-stack --stack-name perler-${STACK_NAME} --template-url ${TEMPLATE_LOCATION} --capabilities CAPABILITY_IAM --parameters ParameterKey=S3OutputBucketName,ParameterValue=${OUTPUT_BUCKET} ParameterKey=DockerImage,ParameterValue=docker.io/ubuntu:20.04 ParameterKey=BuildEnvType,ParameterValue=ARM_CONTAINER ParameterKey=BuildComputeType,ParameterValue=BUILD_GENERAL1_SMALL ParameterKey=BuildProjectName,ParameterValue=${BUILD_PROJECT} ParameterKey=PerlModuleName,ParameterValue=${PERL_MODULE}
+```
+
 ## Example CodeBuild Project - Manual
 
 - Create a Build project in CodeBuild
